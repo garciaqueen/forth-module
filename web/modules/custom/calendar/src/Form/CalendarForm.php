@@ -49,31 +49,36 @@ class CalendarForm extends FormBase {
    */  
   public function buildForm(array $form, FormStateInterface $form_state) {
     $config = $this->configFactory->get('calendar.settings');
-
-    if (!$form_state->has('calendar_rows')) {
-      $saved_rows = $config->get('calendar_rows');
-      if (empty($saved_rows)) {
-        $saved_rows = [
-          ['year' => 2025],
-        ];
-      }
-      $form_state->set('calendar_rows', $saved_rows);
-    }
-
-    $rows = $form_state->get('calendar_rows');
-
-    $form['#prefix'] = '<div id="calendar-form-wrapper">';
-    $form['#suffix'] = '</div>';
-
     $form['add_row'] = [
       '#type' => 'submit',
-      '#value' => $this->t('Add Row'),
+      '#value' => $this->t('Add Row to First Table'),
       '#submit' => ['::addRow'],
       '#ajax' => [
         'callback' => '::ajaxAddRowCallback',
         'wrapper' => 'calendar-form-wrapper',
       ],
     ];
+
+    $form['add_table'] = [
+      '#type' => 'submit',
+      '#value' => $this->t('Add Table'),
+      '#submit' => ['::addTable'],
+      '#ajax' => [
+        'callback' => '::ajaxAddTableCallback',
+        'wrapper' => 'calendar-form-wrapper',
+      ],
+    ];
+    if (!$form_state->has('calendar_tables')) {
+      $saved_tables = $config->get('calendar_tables');
+      if (empty($saved_tables)) {
+        $saved_tables = [
+          [['year' => date('Y')]],
+        ];
+      }
+      $form_state->set('calendar_tables', $saved_tables);
+    }
+
+    $tables = $form_state->get('calendar_tables');
 
     $header = [
       'year' => $this->t('Year'),
@@ -96,180 +101,45 @@ class CalendarForm extends FormBase {
       'ytd' => $this->t('YTD'),
     ];
 
-    $form['data'] = [
-      '#type' => 'table',
-      '#header' => $header,
-    ];  
-
     $saved_data = $config->get('calendar_data', []);
-    
-    foreach ($rows as $index => $row) {
-      $year = $row['year'];
-      
-      $form['data'][$index]['year'] = [
-        '#markup' => $year,
+
+    $form['#prefix'] = '<div id="calendar-form-wrapper">';
+    $form['#suffix'] = '</div>';
+
+    // Build each table
+    foreach ($tables as $table_index => $rows) {
+      $form['table_' . $table_index] = [
+        '#type' => 'table',
+        '#header' => $header,
+        '#prefix' => '<h3>' . $this->t('Table @num', ['@num' => $table_index + 1]) . '</h3>',
+        '#suffix' => '<br>',
       ];
-      $form['data'][$index]['jan'] = [
-        '#type' => 'number',
-        '#title' => $this->t('January'),
-        '#title_display' => 'invisible',
-        '#default_value' => isset($saved_data[$index]['jan']) ? $saved_data[$index]['jan'] : (isset($row['jan']) ? $row['jan'] : ''),
-        '#attributes' => [
-          'style' => 'width: 100px;',
-        ],
-      ];
-      $form['data'][$index]['feb'] = [
-        '#type' => 'number',
-        '#title' => $this->t('February'),
-        '#title_display' => 'invisible',
-        '#default_value' => isset($saved_data[$index]['feb']) ? $saved_data[$index]['feb'] : (isset($row['feb']) ? $row['feb'] : ''),
-        '#attributes' => [
-          'style' => 'width: 100px;',
-        ],
-      ];
-      $form['data'][$index]['mar'] = [
-        '#type' => 'number',
-        '#title' => $this->t('March'),
-        '#title_display' => 'invisible',
-        '#default_value' => isset($saved_data[$index]['mar']) ? $saved_data[$index]['mar'] : (isset($row['mar']) ? $row['mar'] : ''),
-        '#attributes' => [
-          'style' => 'width: 100px;',
-        ],      
-      ];
-      $form['data'][$index]['q1'] = [
-        '#type' => 'number',
-        '#title' => $this->t('Q1 total'),
-        '#title_display' => 'invisible',
-        '#default_value' => isset($saved_data[$index]['q1']) ? $saved_data[$index]['q1'] : (isset($row['q1']) ? $row['q1'] : ''),
-        '#attributes' => [
-          'style' => 'width: 100px;',
-        ],
-      ];
-      $form['data'][$index]['apr'] = [
-        '#type' => 'number',
-        '#title' => $this->t('April'),
-        '#title_display' => 'invisible',
-        '#default_value' => isset($saved_data[$index]['apr']) ? $saved_data[$index]['apr'] : (isset($row['apr']) ? $row['apr'] : ''),
-        '#attributes' => [
-          'style' => 'width: 100px;',
-        ],
-      ];
-      $form['data'][$index]['may'] = [
-        '#type' => 'number',
-        '#title' => $this->t('May'),
-        '#title_display' => 'invisible',
-        '#default_value' => isset($saved_data[$index]['may']) ? $saved_data[$index]['may'] : (isset($row['may']) ? $row['may'] : ''),
-        '#attributes' => [
-          'style' => 'width: 100px;',
-        ],
-      ];
-      $form['data'][$index]['jun'] = [
-        '#type' => 'number',
-        '#title' => $this->t('June'),
-        '#title_display' => 'invisible',
-        '#default_value' => isset($saved_data[$index]['jun']) ? $saved_data[$index]['jun'] : (isset($row['jun']) ? $row['jun'] : ''),
-        '#attributes' => [
-          'style' => 'width: 100px;',
-        ],
-      ];
-      $form['data'][$index]['q2'] = [
-        '#type' => 'number',
-        '#title' => $this->t('Q2 total'),
-        '#title_display' => 'invisible',
-        '#default_value' => isset($saved_data[$index]['q2']) ? $saved_data[$index]['q2'] : (isset($row['q2']) ? $row['q2'] : ''),
-        '#attributes' => [
-          'style' => 'width: 100px;',
-        ],
-      ];
-      $form['data'][$index]['jul'] = [
-        '#type' => 'number',
-        '#title' => $this->t('July'),
-        '#title_display' => 'invisible',
-        '#default_value' => isset($saved_data[$index]['jul']) ? $saved_data[$index]['jul'] : (isset($row['jul']) ? $row['jul'] : ''),
-        '#attributes' => [
-          'style' => 'width: 100px;',
-        ],
-      ];
-      $form['data'][$index]['aug'] = [
-        '#type' => 'number',
-        '#title' => $this->t('August'),
-        '#title_display' => 'invisible',
-        '#default_value' => isset($saved_data[$index]['aug']) ? $saved_data[$index]['aug'] : (isset($row['aug']) ? $row['aug'] : ''),
-        '#attributes' => [
-          'style' => 'width: 100px;',
-        ],
-      ];
-      $form['data'][$index]['sep'] = [
-        '#type' => 'number',
-        '#title' => $this->t('September'),
-        '#title_display' => 'invisible',
-        '#default_value' => isset($saved_data[$index]['sep']) ? $saved_data[$index]['sep'] : (isset($row['sep']) ? $row['sep'] : ''),
-        '#attributes' => [
-          'style' => 'width: 100px;',
-        ],
-      ];
-      $form['data'][$index]['q3'] = [
-        '#type' => 'number',
-        '#title' => $this->t('Q3 total'),
-        '#title_display' => 'invisible',
-        '#default_value' => isset($saved_data[$index]['q3']) ? $saved_data[$index]['q3'] : (isset($row['q3']) ? $row['q3'] : ''),
-        '#attributes' => [
-          'style' => 'width: 100px;',
-        ],
-      ];
-      $form['data'][$index]['oct'] = [
-        '#type' => 'number',
-        '#title' => $this->t('October'),
-        '#title_display' => 'invisible',
-        '#default_value' => isset($saved_data[$index]['oct']) ? $saved_data[$index]['oct'] : (isset($row['oct']) ? $row['oct'] : ''),
-        '#attributes' => [
-          'style' => 'width: 100px;',
-        ],
-      ];
-      $form['data'][$index]['nov'] = [
-        '#type' => 'number',
-        '#title' => $this->t('November'),
-        '#title_display' => 'invisible',
-        '#default_value' => isset($saved_data[$index]['nov']) ? $saved_data[$index]['nov'] : (isset($row['nov']) ? $row['nov'] : ''),
-        '#attributes' => [
-          'style' => 'width: 100px;',
-        ],
-      ];
-      $form['data'][$index]['dec'] = [
-        '#type' => 'number',
-        '#title' => $this->t('December'),
-        '#title_display' => 'invisible',
-        '#default_value' => isset($saved_data[$index]['dec']) ? $saved_data[$index]['dec'] : (isset($row['dec']) ? $row['dec'] : ''),
-        '#attributes' => [
-          'style' => 'width: 100px;',
-        ],
-      ];
-      $form['data'][$index]['q4'] = [
-        '#type' => 'number',
-        '#title' => $this->t('Q4 total'),
-        '#title_display' => 'invisible',
-        '#default_value' => isset($saved_data[$index]['q4']) ? $saved_data[$index]['q4'] : (isset($row['q4']) ? $row['q4'] : ''),
-        '#attributes' => [
-          'style' => 'width: 100px;',
-        ],
-      ];
-      $form['data'][$index]['ytd'] = [
-        '#type' => 'number',
-        '#title' => $this->t('Year to Date'),
-        '#title_display' => 'invisible',
-        '#default_value' => isset($saved_data[$index]['ytd']) ? $saved_data[$index]['ytd'] : (isset($row['ytd']) ? $row['ytd'] : ''),
-        '#attributes' => [
-          'style' => 'width: 100px;',
-        ],
-      ];
+
+      foreach ($rows as $row_index => $row) {
+        $year = $row['year'];
+        $form['table_' . $table_index][$row_index]['year'] = [
+          '#markup' => $year,
+        ];
+
+        foreach (['jan','feb','mar','q1','apr','may','jun','q2','jul','aug','sep','q3','oct','nov','dec','q4','ytd'] as $month) {
+          $form['table_' . $table_index][$row_index][$month] = [
+            '#type' => 'number',
+            '#title_display' => 'invisible',
+            '#default_value' => isset($saved_data[$table_index][$row_index][$month]) ? $saved_data[$table_index][$row_index][$month] : '',
+            '#attributes' => ['style' => 'width:100px;'],
+          ];
+        }
+      }
     }
+
+
 
     $form['submit'] = [
       '#type' => 'submit',
       '#value' => $this->t('Save'),
     ];
 
-    return $form;  
+    return $form;
   }
 
   // Ajax callback to refresh the entire form
@@ -277,21 +147,48 @@ class CalendarForm extends FormBase {
     return $form;
   }
 
-  public function addRow(array &$form, FormStateInterface $form_state) {
-    $rows = $form_state->get('calendar_rows');
+  public function ajaxAddTableCallback(array &$form, FormStateInterface $form_state) {
+    return $form;
+  }
 
-    $first_row = reset($rows);
-    $next_year = isset($first_row['year']) ? $first_row['year'] - 1 : 2026;
+  public function addTable(array &$form, FormStateInterface $form_state) {
+    $tables = $form_state->get('calendar_tables');
+    $current_year = date('Y');
 
-    array_unshift($rows, ['year' => $next_year]);
-    $form_state->set('calendar_rows', $rows);
+    $tables[] = [
+      ['year' => $current_year]
+    ];
+
+    $form_state->set('calendar_tables', $tables);
 
     $config = $this->configFactory->getEditable('calendar.settings');
-    $config->set('calendar_rows', $rows);
+    $config->set('calendar_tables', $tables);
     $config->save();
 
     $form_state->setRebuild(TRUE);
   }
+
+
+    public function addRow(array &$form, FormStateInterface $form_state) {
+      $tables = $form_state->get('calendar_tables');
+      $first_table = $tables[0];
+
+      $first_row = reset($first_table);
+      $next_year = isset($first_row['year']) ? $first_row['year'] - 1 : date('Y');
+
+      // Add the new row to the top of the table
+      array_unshift($first_table, ['year' => $next_year]);
+      $tables[0] = $first_table;
+
+      $form_state->set('calendar_tables', $tables);
+
+      $config = $this->configFactory->getEditable('calendar.settings');
+      $config->set('calendar_tables', $tables);
+      $config->save();
+
+      $form_state->setRebuild(TRUE);
+    }
+
   /**
    * {@inheritdoc}
    */
@@ -317,14 +214,17 @@ class CalendarForm extends FormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    $values = $form_state->getValue('data');
-    $rows = $form_state->get('calendar_rows');
-    
+    $tables = $form_state->get('calendar_tables');
+    $values = [];
+    foreach ($tables as $table_index => $rows) {
+      $values[$table_index] = $form_state->getValue('table_' . $table_index);
+    }
+
     $config = $this->configFactory->getEditable('calendar.settings');
-    $config->set('calendar_rows', $rows);
+    $config->set('calendar_tables', $tables);
     $config->set('calendar_data', $values);
     $config->save();
-    
-    \Drupal::messenger()->addMessage($this->t('Valid.'));
+
+    \Drupal::messenger()->addMessage($this->t('Saved successfully.'));
   }
 }
