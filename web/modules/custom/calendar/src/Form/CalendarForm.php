@@ -200,7 +200,6 @@ class CalendarForm extends FormBase {
     foreach ($tables as $table_index => $rows) {
       $values = $form_state->getValue('table_' . $table_index);
       if (!is_array($values)) continue;
-
       foreach ($values as $row_index => $row) {
         //Знаходимо всі заповнені місяці у рядку
         $filled = [];
@@ -254,6 +253,25 @@ class CalendarForm extends FormBase {
         }
       }
     }
+
+    foreach ($tables as $table_index => $rows) {
+      $years = [];
+      foreach ($rows as $row) {
+        if (isset($row['year'])) {
+          $years[] = (int) $row['year'];
+        }
+      }
+      
+      rsort($years);
+      
+      for ($i = 0; $i < (count($years) - 1); $i++) {
+        if (($years[$i] - $years[$i + 1]) != 1) {
+          $form_state->setErrorByName('calendar_form', $this->t('There\'s a gap between years!'));
+          break 2;
+        }
+      }
+    }
+
   }
 
 
