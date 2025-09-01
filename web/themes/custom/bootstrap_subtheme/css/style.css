@@ -2,3 +2,13 @@
  * @file
  * Subtheme specific CSS.
  */
+
+
+ #calendar-form-wrapper {
+    margin-bottom: 30px;
+ }
+
+ .table-responsive {
+    margin-bottom: 20px;
+ }
+
