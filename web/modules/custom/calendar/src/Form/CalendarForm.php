@@ -114,102 +114,153 @@ class CalendarForm extends FormBase {
         '#title' => $this->t('January'),
         '#title_display' => 'invisible',
         '#default_value' => isset($saved_data[$index]['jan']) ? $saved_data[$index]['jan'] : (isset($row['jan']) ? $row['jan'] : ''),
+        '#attributes' => [
+          'style' => 'width: 100px;',
+        ],
       ];
       $form['data'][$index]['feb'] = [
         '#type' => 'number',
         '#title' => $this->t('February'),
         '#title_display' => 'invisible',
         '#default_value' => isset($saved_data[$index]['feb']) ? $saved_data[$index]['feb'] : (isset($row['feb']) ? $row['feb'] : ''),
+        '#attributes' => [
+          'style' => 'width: 100px;',
+        ],
       ];
       $form['data'][$index]['mar'] = [
         '#type' => 'number',
         '#title' => $this->t('March'),
         '#title_display' => 'invisible',
         '#default_value' => isset($saved_data[$index]['mar']) ? $saved_data[$index]['mar'] : (isset($row['mar']) ? $row['mar'] : ''),
+        '#attributes' => [
+          'style' => 'width: 100px;',
+        ],      
       ];
       $form['data'][$index]['q1'] = [
         '#type' => 'number',
         '#title' => $this->t('Q1 total'),
         '#title_display' => 'invisible',
         '#default_value' => isset($saved_data[$index]['q1']) ? $saved_data[$index]['q1'] : (isset($row['q1']) ? $row['q1'] : ''),
+        '#attributes' => [
+          'style' => 'width: 100px;',
+        ],
       ];
       $form['data'][$index]['apr'] = [
         '#type' => 'number',
         '#title' => $this->t('April'),
         '#title_display' => 'invisible',
         '#default_value' => isset($saved_data[$index]['apr']) ? $saved_data[$index]['apr'] : (isset($row['apr']) ? $row['apr'] : ''),
+        '#attributes' => [
+          'style' => 'width: 100px;',
+        ],
       ];
       $form['data'][$index]['may'] = [
         '#type' => 'number',
         '#title' => $this->t('May'),
         '#title_display' => 'invisible',
         '#default_value' => isset($saved_data[$index]['may']) ? $saved_data[$index]['may'] : (isset($row['may']) ? $row['may'] : ''),
+        '#attributes' => [
+          'style' => 'width: 100px;',
+        ],
       ];
       $form['data'][$index]['jun'] = [
         '#type' => 'number',
         '#title' => $this->t('June'),
         '#title_display' => 'invisible',
         '#default_value' => isset($saved_data[$index]['jun']) ? $saved_data[$index]['jun'] : (isset($row['jun']) ? $row['jun'] : ''),
+        '#attributes' => [
+          'style' => 'width: 100px;',
+        ],
       ];
       $form['data'][$index]['q2'] = [
         '#type' => 'number',
         '#title' => $this->t('Q2 total'),
         '#title_display' => 'invisible',
         '#default_value' => isset($saved_data[$index]['q2']) ? $saved_data[$index]['q2'] : (isset($row['q2']) ? $row['q2'] : ''),
+        '#attributes' => [
+          'style' => 'width: 100px;',
+        ],
       ];
       $form['data'][$index]['jul'] = [
         '#type' => 'number',
         '#title' => $this->t('July'),
         '#title_display' => 'invisible',
         '#default_value' => isset($saved_data[$index]['jul']) ? $saved_data[$index]['jul'] : (isset($row['jul']) ? $row['jul'] : ''),
+        '#attributes' => [
+          'style' => 'width: 100px;',
+        ],
       ];
       $form['data'][$index]['aug'] = [
         '#type' => 'number',
         '#title' => $this->t('August'),
         '#title_display' => 'invisible',
         '#default_value' => isset($saved_data[$index]['aug']) ? $saved_data[$index]['aug'] : (isset($row['aug']) ? $row['aug'] : ''),
+        '#attributes' => [
+          'style' => 'width: 100px;',
+        ],
       ];
       $form['data'][$index]['sep'] = [
         '#type' => 'number',
         '#title' => $this->t('September'),
         '#title_display' => 'invisible',
         '#default_value' => isset($saved_data[$index]['sep']) ? $saved_data[$index]['sep'] : (isset($row['sep']) ? $row['sep'] : ''),
+        '#attributes' => [
+          'style' => 'width: 100px;',
+        ],
       ];
       $form['data'][$index]['q3'] = [
         '#type' => 'number',
         '#title' => $this->t('Q3 total'),
         '#title_display' => 'invisible',
         '#default_value' => isset($saved_data[$index]['q3']) ? $saved_data[$index]['q3'] : (isset($row['q3']) ? $row['q3'] : ''),
+        '#attributes' => [
+          'style' => 'width: 100px;',
+        ],
       ];
       $form['data'][$index]['oct'] = [
         '#type' => 'number',
         '#title' => $this->t('October'),
         '#title_display' => 'invisible',
         '#default_value' => isset($saved_data[$index]['oct']) ? $saved_data[$index]['oct'] : (isset($row['oct']) ? $row['oct'] : ''),
+        '#attributes' => [
+          'style' => 'width: 100px;',
+        ],
       ];
       $form['data'][$index]['nov'] = [
         '#type' => 'number',
         '#title' => $this->t('November'),
         '#title_display' => 'invisible',
         '#default_value' => isset($saved_data[$index]['nov']) ? $saved_data[$index]['nov'] : (isset($row['nov']) ? $row['nov'] : ''),
+        '#attributes' => [
+          'style' => 'width: 100px;',
+        ],
       ];
       $form['data'][$index]['dec'] = [
         '#type' => 'number',
         '#title' => $this->t('December'),
         '#title_display' => 'invisible',
         '#default_value' => isset($saved_data[$index]['dec']) ? $saved_data[$index]['dec'] : (isset($row['dec']) ? $row['dec'] : ''),
+        '#attributes' => [
+          'style' => 'width: 100px;',
+        ],
       ];
       $form['data'][$index]['q4'] = [
         '#type' => 'number',
         '#title' => $this->t('Q4 total'),
         '#title_display' => 'invisible',
         '#default_value' => isset($saved_data[$index]['q4']) ? $saved_data[$index]['q4'] : (isset($row['q4']) ? $row['q4'] : ''),
+        '#attributes' => [
+          'style' => 'width: 100px;',
+        ],
       ];
       $form['data'][$index]['ytd'] = [
         '#type' => 'number',
         '#title' => $this->t('Year to Date'),
         '#title_display' => 'invisible',
         '#default_value' => isset($saved_data[$index]['ytd']) ? $saved_data[$index]['ytd'] : (isset($row['ytd']) ? $row['ytd'] : ''),
+        '#attributes' => [
+          'style' => 'width: 100px;',
+        ],
       ];
     }
 
@@ -226,7 +277,6 @@ class CalendarForm extends FormBase {
     return $form;
   }
 
-  // Add row submit handler
   public function addRow(array &$form, FormStateInterface $form_state) {
     $rows = $form_state->get('calendar_rows');
 
@@ -242,7 +292,27 @@ class CalendarForm extends FormBase {
 
     $form_state->setRebuild(TRUE);
   }
-
+  /**
+   * {@inheritdoc}
+   */
+    public function validateForm(array &$form, FormStateInterface $form_state) {
+      $values = $form_state->getValue('data');
+      \Drupal::logger('calendar')->notice('<pre>@data</pre>', [
+        '@data' => print_r($values, TRUE),
+      ]);
+      $i = 0;
+      foreach ($values as $value) {
+        foreach ($value as $month) {
+          if (empty($month)) {
+            $i++;
+          }
+        }
+      }
+      
+      if ($i > 0) {
+        $form_state->setErrorByName('calendar', $this->t('Invalid table. Please fill in ALL the values!'));
+      }
+    }
   /**
    * {@inheritdoc}
    */
@@ -255,6 +325,6 @@ class CalendarForm extends FormBase {
     $config->set('calendar_data', $values);
     $config->save();
     
-    \Drupal::messenger()->addMessage($this->t('Calendar data has been saved.'));
+    \Drupal::messenger()->addMessage($this->t('Valid.'));
   }
 }
