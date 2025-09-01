@@ -169,47 +169,94 @@ class CalendarForm extends FormBase {
   }
 
 
-    public function addRow(array &$form, FormStateInterface $form_state) {
-      $tables = $form_state->get('calendar_tables');
-      $first_table = $tables[0];
+  public function addRow(array &$form, FormStateInterface $form_state) {
+    $tables = $form_state->get('calendar_tables');
+    $first_table = $tables[0];
 
-      $first_row = reset($first_table);
-      $next_year = isset($first_row['year']) ? $first_row['year'] - 1 : date('Y');
+    $first_row = reset($first_table);
+    $next_year = isset($first_row['year']) ? $first_row['year'] - 1 : date('Y');
 
-      // Add the new row to the top of the table
-      array_unshift($first_table, ['year' => $next_year]);
-      $tables[0] = $first_table;
+    array_unshift($first_table, ['year' => $next_year]);
+    $tables[0] = $first_table;
 
-      $form_state->set('calendar_tables', $tables);
+    $form_state->set('calendar_tables', $tables);
 
-      $config = $this->configFactory->getEditable('calendar.settings');
-      $config->set('calendar_tables', $tables);
-      $config->save();
+    $config = $this->configFactory->getEditable('calendar.settings');
+    $config->set('calendar_tables', $tables);
+    $config->save();
 
-      $form_state->setRebuild(TRUE);
-    }
+    $form_state->setRebuild(TRUE);
+  }
 
   /**
    * {@inheritdoc}
    */
-    public function validateForm(array &$form, FormStateInterface $form_state) {
-      $values = $form_state->getValue('data');
-      \Drupal::logger('calendar')->notice('<pre>@data</pre>', [
-        '@data' => print_r($values, TRUE),
-      ]);
-      $i = 0;
-      foreach ($values as $value) {
-        foreach ($value as $month) {
-          if (empty($month)) {
-            $i++;
+  public function validateForm(array &$form, FormStateInterface $form_state) {
+    $tables = $form_state->get('calendar_tables');
+    $months = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+
+    $periods = [];
+
+    foreach ($tables as $table_index => $rows) {
+      $values = $form_state->getValue('table_' . $table_index);
+      if (!is_array($values)) continue;
+
+      foreach ($values as $row_index => $row) {
+        //Знаходимо всі заповнені місяці у рядку
+        $filled = [];
+        foreach ($months as $m) {
+          if ($row[$m] !== '' && $row[$m] !== NULL) {
+            $filled[] = $m;
           }
         }
-      }
-      
-      if ($i > 0) {
-        $form_state->setErrorByName('calendar', $this->t('Invalid table. Please fill in ALL the values!'));
+
+        if ($filled) {
+          $first = reset($filled);
+          $last = end($filled);
+
+          $expected_range = array_slice(
+            $months,
+            array_search($first, $months),
+            array_search($last, $months) - array_search($first, $months) + 1
+          );
+
+          foreach ($expected_range as $m) {
+            if ($row[$m] === '' || $row[$m] === NULL) {
+              $form_state->setErrorByName(
+                "table_{$table_index}][{$row_index}]",
+                $this->t('Row @r in Table @t has missing month(s) between @f and @l.', [
+                  '@r' => $row_index + 1,
+                  '@t' => $table_index + 1,
+                  '@f' => ucfirst($first),
+                  '@l' => ucfirst($last),
+                ])
+              );
+            }
+          }
+
+          $periods[] = [$first, $last];
+        }
       }
     }
+
+    //Перевірка, що всі періоди однакові між таблицями
+    if ($periods) {
+      $base = $periods[0];
+      foreach ($periods as $p) {
+        if ($p !== $base) {
+          $form_state->setErrorByName('calendar_form',
+            $this->t('All tables must have the same filled period (e.g. @bf–@bl).', [
+              '@bf' => ucfirst($base[0]),
+              '@bl' => ucfirst($base[1]),
+            ])
+          );
+          break;
+        }
+      }
+    }
+  }
+
+
   /**
    * {@inheritdoc}
    */
