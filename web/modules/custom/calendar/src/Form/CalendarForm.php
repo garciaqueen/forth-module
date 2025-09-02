@@ -8,12 +8,12 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Form class for Calendar entries.
+ * Provides a Calendar form with tables of yearly/monthly/quarterly data.
  */
 class CalendarForm extends FormBase {
 
   /**
-   * The config factory.
+   * The config factory service.
    *
    * @var \Drupal\Core\Config\ConfigFactoryInterface
    */
@@ -23,7 +23,7 @@ class CalendarForm extends FormBase {
    * Constructs a CalendarForm object.
    *
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
-   *   The config factory.
+   *   The config factory service.
    */
   public function __construct(ConfigFactoryInterface $config_factory) {
     $this->configFactory = $config_factory;
@@ -37,57 +37,44 @@ class CalendarForm extends FormBase {
       $container->get('config.factory')
     );
   }
+
   /**
    * {@inheritdoc}
    */
   public function getFormId() {
     return 'calendar_form';
-  }   
+  }
 
+  /**
+   * Calculates a quarterly value based on three monthly inputs.
+   * If all months are empty/0, returns NULL.
+   * Otherwise uses formula ((m1+m2+m3)+1)/3 rounded to nearest 0.05.
+   */
   private function calculateQuarterlyValue($m1, $m2, $m3) {
-
     $m1 = ($m1 === '' || $m1 === NULL) ? 0 : (float) $m1;
     $m2 = ($m2 === '' || $m2 === NULL) ? 0 : (float) $m2;
     $m3 = ($m3 === '' || $m3 === NULL) ? 0 : (float) $m3;
-    
+
     if ($m1 == 0 && $m2 == 0 && $m3 == 0) {
       return NULL;
     }
-    
+
     $result = (($m1 + $m2 + $m3) + 1) / 3;
-    
     return round($result / 0.05) * 0.05;
   }
-  
+
   /**
    * {@inheritdoc}
-   */  
+   */
   public function buildForm(array $form, FormStateInterface $form_state) {
     $config = $this->configFactory->get('calendar.settings');
-    $form['add_row'] = [
-      '#type' => 'submit',
-      '#value' => $this->t('Add Row to First Table'),
-      '#submit' => ['::addRow'],
-      '#ajax' => [
-        'callback' => '::ajaxAddRowCallback',
-        'wrapper' => 'calendar-form-wrapper',
-      ],
-    ];
 
-    $form['add_table'] = [
-      '#type' => 'submit',
-      '#value' => $this->t('Add Table'),
-      '#submit' => ['::addTable'],
-      '#ajax' => [
-        'callback' => '::ajaxAddTableCallback',
-        'wrapper' => 'calendar-form-wrapper',
-      ],
-    ];
+    // Initialize tables in form state if not already set
     if (!$form_state->has('calendar_tables')) {
       $saved_tables = $config->get('calendar_tables');
       if (empty($saved_tables)) {
         $saved_tables = [
-          [['year' => date('Y')]],
+          [['year' => date('Y')]], // Start with one table and current year
         ];
       }
       $form_state->set('calendar_tables', $saved_tables);
@@ -95,6 +82,7 @@ class CalendarForm extends FormBase {
 
     $tables = $form_state->get('calendar_tables');
 
+    // Table header definition
     $header = [
       'year' => $this->t('Year'),
       'jan' => $this->t('Jan'),
@@ -118,10 +106,42 @@ class CalendarForm extends FormBase {
 
     $saved_data = $config->get('calendar_data', []);
 
+    // Wrapper for AJAX
     $form['#prefix'] = '<div id="calendar-form-wrapper">';
     $form['#suffix'] = '</div>';
 
-    // Build each table
+    // --- Buttons above all tables ---
+    $form['buttons_row'] = [
+      '#type' => 'container',
+      '#attributes' => ['style' => 'display:flex; gap:10px; margin-bottom:15px;'],
+    ];
+
+    // Add Table button
+    $form['buttons_row']['add_table'] = [
+      '#type' => 'submit',
+      '#value' => $this->t('Add Table'),
+      '#submit' => ['::addTable'],
+      '#ajax' => [
+        'callback' => '::ajaxAddTableCallback',
+        'wrapper' => 'calendar-form-wrapper',
+      ],
+    ];
+
+    // Add Row buttons for each table
+    foreach ($tables as $table_index => $rows) {
+      $form['buttons_row']['table_' . $table_index . '_add_row'] = [
+        '#type' => 'submit',
+        '#value' => $this->t('Add Row to Table @num', ['@num' => $table_index + 1]),
+        '#submit' => ['::addRowToTable'],
+        '#ajax' => [
+          'callback' => '::ajaxAddRowCallback',
+          'wrapper' => 'calendar-form-wrapper',
+        ],
+        '#table_index' => $table_index,
+      ];
+    }
+
+    // --- Build each table ---
     foreach ($tables as $table_index => $rows) {
       $form['table_' . $table_index] = [
         '#type' => 'table',
@@ -136,10 +156,9 @@ class CalendarForm extends FormBase {
           '#markup' => $year,
         ];
 
-        // All fields in the correct order
+        // Add month, quarter, and YTD fields
         foreach (['jan','feb','mar','q1','apr','may','jun','q2','jul','aug','sep','q3','oct','nov','dec','q4','ytd'] as $field) {
           if (in_array($field, ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'])) {
-            // Regular month fields
             $form['table_' . $table_index][$row_index][$field] = [
               '#type' => 'number',
               '#title_display' => 'invisible',
@@ -147,19 +166,17 @@ class CalendarForm extends FormBase {
               '#attributes' => ['style' => 'width:100px;'],
             ];
           } else {
-            // Quarter and YTD fields
             $value = '';
             if (isset($saved_data[$table_index][$row_index][$field]) && $saved_data[$table_index][$row_index][$field] !== NULL) {
               $value = number_format($saved_data[$table_index][$row_index][$field], 2);
             }
-            
             $form['table_' . $table_index][$row_index][$field] = [
               '#type' => 'textfield',
               '#title_display' => 'invisible',
               '#default_value' => $value,
               '#attributes' => [
                 'style' => 'width:100px; background-color: #f5f5f5;',
-                'readonly' => 'readonly'
+                'readonly' => 'readonly',
               ],
             ];
           }
@@ -167,31 +184,40 @@ class CalendarForm extends FormBase {
       }
     }
 
+    // --- Save button below all tables ---
     $form['submit'] = [
       '#type' => 'submit',
       '#value' => $this->t('Save'),
+      '#prefix' => '<div style="margin-top:15px;">',
+      '#suffix' => '</div>',
     ];
 
     return $form;
   }
 
-  // Ajax callback to refresh the entire form
+  /**
+   * Ajax callback after adding a row.
+   */
   public function ajaxAddRowCallback(array &$form, FormStateInterface $form_state) {
     return $form;
   }
 
+  /**
+   * Ajax callback after adding a table.
+   */
   public function ajaxAddTableCallback(array &$form, FormStateInterface $form_state) {
     return $form;
   }
 
+  /**
+   * Adds a new table to the form.
+   */
   public function addTable(array &$form, FormStateInterface $form_state) {
     $tables = $form_state->get('calendar_tables');
     $current_year = date('Y');
-
     $tables[] = [
-      ['year' => $current_year]
+      ['year' => $current_year],
     ];
-
     $form_state->set('calendar_tables', $tables);
 
     $config = $this->configFactory->getEditable('calendar.settings');
@@ -201,16 +227,21 @@ class CalendarForm extends FormBase {
     $form_state->setRebuild(TRUE);
   }
 
+  /**
+   * Adds a new row to a specific table.
+   */
+  public function addRowToTable(array &$form, FormStateInterface $form_state) {
+    $triggering_element = $form_state->getTriggeringElement();
+    $table_index = $triggering_element['#table_index'];
 
-  public function addRow(array &$form, FormStateInterface $form_state) {
     $tables = $form_state->get('calendar_tables');
-    $first_table = $tables[0];
+    $table = $tables[$table_index];
 
-    $first_row = reset($first_table);
+    $first_row = reset($table);
     $next_year = isset($first_row['year']) ? $first_row['year'] - 1 : date('Y');
 
-    array_unshift($first_table, ['year' => $next_year]);
-    $tables[0] = $first_table;
+    array_unshift($table, ['year' => $next_year]);
+    $tables[$table_index] = $table;
 
     $form_state->set('calendar_tables', $tables);
 
@@ -220,7 +251,7 @@ class CalendarForm extends FormBase {
 
     $form_state->setRebuild(TRUE);
   }
-
+  
   /**
    * {@inheritdoc}
    */
@@ -234,24 +265,20 @@ class CalendarForm extends FormBase {
       $values = $form_state->getValue('table_' . $table_index);
       if (!is_array($values)) continue;
       foreach ($values as $row_index => $row) {
-        //Знаходимо всі заповнені місяці у рядку
         $filled = [];
         foreach ($months as $m) {
           if ($row[$m] !== '' && $row[$m] !== NULL) {
             $filled[] = $m;
           }
         }
-
         if ($filled) {
           $first = reset($filled);
           $last = end($filled);
-
           $expected_range = array_slice(
             $months,
             array_search($first, $months),
             array_search($last, $months) - array_search($first, $months) + 1
           );
-
           foreach ($expected_range as $m) {
             if ($row[$m] === '' || $row[$m] === NULL) {
               $form_state->setErrorByName(
@@ -265,13 +292,11 @@ class CalendarForm extends FormBase {
               );
             }
           }
-
           $periods[] = [$first, $last];
         }
       }
     }
 
-    //Перевірка, що всі періоди однакові між таблицями
     if ($periods) {
       $base = $periods[0];
       foreach ($periods as $p) {
@@ -294,9 +319,9 @@ class CalendarForm extends FormBase {
           $years[] = (int) $row['year'];
         }
       }
-      
+
       rsort($years);
-      
+
       for ($i = 0; $i < (count($years) - 1); $i++) {
         if (($years[$i] - $years[$i + 1]) != 1) {
           $form_state->setErrorByName('calendar_form', $this->t('There\'s a gap between years!'));
@@ -305,7 +330,6 @@ class CalendarForm extends FormBase {
       }
     }
   }
-
   /**
    * {@inheritdoc}
    */
@@ -324,23 +348,20 @@ class CalendarForm extends FormBase {
           'q4' => ['oct', 'nov', 'dec'],
         ];
 
-        // Calculate quarterly values using the new formula
         foreach ($quarters as $q => $months) {
           $m1 = isset($row[$months[0]]) && $row[$months[0]] !== '' ? (float) $row[$months[0]] : 0;
           $m2 = isset($row[$months[1]]) && $row[$months[1]] !== '' ? (float) $row[$months[1]] : 0;
           $m3 = isset($row[$months[2]]) && $row[$months[2]] !== '' ? (float) $row[$months[2]] : 0;
-          
+
           $row[$q] = $this->calculateQuarterlyValue($m1, $m2, $m3);
         }
 
         $q_values = [];
         foreach (['q1', 'q2', 'q3', 'q4'] as $q) {
-          $q_values[] = ($row[$q] !== NULL) ? $row[$q] : 0; // NULL → 0
+          $q_values[] = ($row[$q] !== NULL) ? $row[$q] : 0;
         }
 
         $ytd_raw = (array_sum($q_values) + 1) / 4;
-
-        // Якщо всі квартали порожні (NULL), тоді YTD = NULL
         $row['ytd'] = (array_sum($q_values) === 0) ? NULL : round($ytd_raw, 2);
       }
 

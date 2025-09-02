@@ -15,3 +15,8 @@
 .col {
     width: 50px;
 }
+
+.button {
+   margin-top: 10px !important;
+   margin-bottom: 10px !important;
+}
