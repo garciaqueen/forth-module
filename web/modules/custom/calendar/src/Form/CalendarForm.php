@@ -333,17 +333,15 @@ class CalendarForm extends FormBase {
           $row[$q] = $this->calculateQuarterlyValue($m1, $m2, $m3);
         }
 
-        // Calculate YTD as sum of quarters (only if quarters are not NULL)
-        $ytd_sum = 0;
-        $has_data = false;
+        $q_values = [];
         foreach (['q1', 'q2', 'q3', 'q4'] as $q) {
-          if ($row[$q] !== NULL) {
-            $ytd_sum += $row[$q];
-            $has_data = true;
-          }
+          $q_values[] = ($row[$q] !== NULL) ? $row[$q] : 0; // NULL → 0
         }
-        
-        $row['ytd'] = $has_data ? $ytd_sum : NULL;
+
+        $ytd_raw = (array_sum($q_values) + 1) / 4;
+
+        // Якщо всі квартали порожні (NULL), тоді YTD = NULL
+        $row['ytd'] = (array_sum($q_values) === 0) ? NULL : round($ytd_raw, 2);
       }
 
       $values[$table_index] = $table_values;
