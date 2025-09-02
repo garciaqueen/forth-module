@@ -43,6 +43,21 @@ class CalendarForm extends FormBase {
   public function getFormId() {
     return 'calendar_form';
   }   
+
+  private function calculateQuarterlyValue($m1, $m2, $m3) {
+
+    $m1 = ($m1 === '' || $m1 === NULL) ? 0 : (float) $m1;
+    $m2 = ($m2 === '' || $m2 === NULL) ? 0 : (float) $m2;
+    $m3 = ($m3 === '' || $m3 === NULL) ? 0 : (float) $m3;
+    
+    if ($m1 == 0 && $m2 == 0 && $m3 == 0) {
+      return NULL;
+    }
+    
+    $result = (($m1 + $m2 + $m3) + 1) / 3;
+    
+    return round($result / 0.05) * 0.05;
+  }
   
   /**
    * {@inheritdoc}
@@ -121,18 +136,36 @@ class CalendarForm extends FormBase {
           '#markup' => $year,
         ];
 
-        foreach (['jan','feb','mar','q1','apr','may','jun','q2','jul','aug','sep','q3','oct','nov','dec','q4','ytd'] as $month) {
-          $form['table_' . $table_index][$row_index][$month] = [
-            '#type' => 'number',
-            '#title_display' => 'invisible',
-            '#default_value' => isset($saved_data[$table_index][$row_index][$month]) ? $saved_data[$table_index][$row_index][$month] : '',
-            '#attributes' => ['style' => 'width:100px;'],
-          ];
+        // All fields in the correct order
+        foreach (['jan','feb','mar','q1','apr','may','jun','q2','jul','aug','sep','q3','oct','nov','dec','q4','ytd'] as $field) {
+          if (in_array($field, ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'])) {
+            // Regular month fields
+            $form['table_' . $table_index][$row_index][$field] = [
+              '#type' => 'number',
+              '#title_display' => 'invisible',
+              '#default_value' => isset($saved_data[$table_index][$row_index][$field]) ? $saved_data[$table_index][$row_index][$field] : '',
+              '#attributes' => ['style' => 'width:100px;'],
+            ];
+          } else {
+            // Quarter and YTD fields
+            $value = '';
+            if (isset($saved_data[$table_index][$row_index][$field]) && $saved_data[$table_index][$row_index][$field] !== NULL) {
+              $value = number_format($saved_data[$table_index][$row_index][$field], 2);
+            }
+            
+            $form['table_' . $table_index][$row_index][$field] = [
+              '#type' => 'textfield',
+              '#title_display' => 'invisible',
+              '#default_value' => $value,
+              '#attributes' => [
+                'style' => 'width:100px; background-color: #f5f5f5;',
+                'readonly' => 'readonly'
+              ],
+            ];
+          }
         }
       }
     }
-
-
 
     $form['submit'] = [
       '#type' => 'submit',
@@ -271,9 +304,7 @@ class CalendarForm extends FormBase {
         }
       }
     }
-
   }
-
 
   /**
    * {@inheritdoc}
@@ -281,8 +312,41 @@ class CalendarForm extends FormBase {
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $tables = $form_state->get('calendar_tables');
     $values = [];
+
     foreach ($tables as $table_index => $rows) {
-      $values[$table_index] = $form_state->getValue('table_' . $table_index);
+      $table_values = $form_state->getValue('table_' . $table_index);
+
+      foreach ($table_values as $row_index => &$row) {
+        $quarters = [
+          'q1' => ['jan', 'feb', 'mar'],
+          'q2' => ['apr', 'may', 'jun'],
+          'q3' => ['jul', 'aug', 'sep'],
+          'q4' => ['oct', 'nov', 'dec'],
+        ];
+
+        // Calculate quarterly values using the new formula
+        foreach ($quarters as $q => $months) {
+          $m1 = isset($row[$months[0]]) && $row[$months[0]] !== '' ? (float) $row[$months[0]] : 0;
+          $m2 = isset($row[$months[1]]) && $row[$months[1]] !== '' ? (float) $row[$months[1]] : 0;
+          $m3 = isset($row[$months[2]]) && $row[$months[2]] !== '' ? (float) $row[$months[2]] : 0;
+          
+          $row[$q] = $this->calculateQuarterlyValue($m1, $m2, $m3);
+        }
+
+        // Calculate YTD as sum of quarters (only if quarters are not NULL)
+        $ytd_sum = 0;
+        $has_data = false;
+        foreach (['q1', 'q2', 'q3', 'q4'] as $q) {
+          if ($row[$q] !== NULL) {
+            $ytd_sum += $row[$q];
+            $has_data = true;
+          }
+        }
+        
+        $row['ytd'] = $has_data ? $ytd_sum : NULL;
+      }
+
+      $values[$table_index] = $table_values;
     }
 
     $config = $this->configFactory->getEditable('calendar.settings');
